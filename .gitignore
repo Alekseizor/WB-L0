@@ -9,3 +9,9 @@
 
 # Игнорирование файлов окружения
 .env
+
+# Игнорирование системных файлов IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
