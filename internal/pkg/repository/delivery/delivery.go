@@ -1,6 +1,9 @@
 package delivery
 
-import "github.com/google/uuid"
+import (
+	"context"
+	"github.com/google/uuid"
+)
 
 type Delivery struct {
 	DeliveryUUID uuid.UUID `json:"delivery_uuid"`
@@ -11,4 +14,8 @@ type Delivery struct {
 	Address      string    `json:"address"`
 	Region       string    `json:"region"`
 	Email        string    `json:"email"`
+}
+
+type OrderRepo interface {
+	AddDelivery(item Delivery, ctx context.Context) (,error)
 }

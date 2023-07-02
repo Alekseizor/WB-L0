@@ -2,7 +2,7 @@ package items
 
 import "github.com/google/uuid"
 
-type Items struct {
+type Item struct {
 	ItemUUID    uuid.UUID `json:"item_uuid"`
 	ChrtID      int       `json:"chrt_id"`
 	TrackNumber string    `json:"track_number"`
