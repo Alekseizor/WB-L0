@@ -16,17 +16,19 @@ func NewRepoItemsPostgres(db *sql.DB) (*RepoItemsPostgres, error) {
 	}, nil
 }
 
-func (op *RepoItemsPostgres) AddPayment(items []Item, ctx context.Context) error {
-	for _, item := range items {
+func (op *RepoItemsPostgres) AddItems(ctx context.Context, items []Item) ([]uuid.UUID, error) {
+	uuidItems := make([]uuid.UUID, len(items))
+	for index, item := range items {
 		itemUUID, err := uuid.NewUUID()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		item.ItemUUID = itemUUID
-		_, err = op.DB.ExecContext(ctx, "INSERT INTO item VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);", item.ItemUUID, item.ChrtID, item.TrackNumber, item.Price, item.RID, item.Name, item.Sale, item.Size, item.TotalPrice, item.NmID, item.Brand, item.Status)
+		_, err = op.DB.ExecContext(ctx, "INSERT INTO items VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);", item.ItemUUID, item.ChrtID, item.TrackNumber, item.Price, item.RID, item.Name, item.Sale, item.Size, item.TotalPrice, item.NmID, item.Brand, item.Status)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		uuidItems[index] = itemUUID
 	}
-	return nil
+	return uuidItems, nil
 }

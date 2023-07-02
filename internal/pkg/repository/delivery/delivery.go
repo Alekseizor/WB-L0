@@ -16,6 +16,6 @@ type Delivery struct {
 	Email        string    `json:"email"`
 }
 
-type OrderRepo interface {
-	AddDelivery(item Delivery, ctx context.Context) (,error)
+type DeliveryRepo interface {
+	AddDelivery(ctx context.Context, item Delivery) (*uuid.UUID, error)
 }

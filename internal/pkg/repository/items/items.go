@@ -1,6 +1,9 @@
 package items
 
-import "github.com/google/uuid"
+import (
+	"context"
+	"github.com/google/uuid"
+)
 
 type Item struct {
 	ItemUUID    uuid.UUID `json:"item_uuid"`
@@ -15,4 +18,8 @@ type Item struct {
 	NmID        int       `json:"nm_id"`
 	Brand       string    `json:"brand"`
 	Status      int       `json:"status"`
+}
+
+type ItemRepo interface {
+	AddItems(ctx context.Context, item []Item) ([]uuid.UUID, error)
 }

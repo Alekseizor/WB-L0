@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ячейка для ввода строки</title>
+    <script>
+        function requestString() {
+            var input = document.getElementById("input-text");
+            var userInput = input.value;
+            // Перенаправление на адрес "localhost:8080/api/orders/"
+            window.location.href = "http://localhost:8080/api/orders/"+userInput;
+        }
+    </script>
+</head>
+<body>
+<label for="input-text">Введите строку:</label>
+<input type="text" id="input-text">
+<button onclick="requestString()">Запросить</button>
+</body>
+</html>

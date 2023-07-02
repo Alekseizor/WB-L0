@@ -1,7 +1,11 @@
 package gettingstream
 
 import (
+	"WB-L0/internal/pkg/repository/delivery"
+	"WB-L0/internal/pkg/repository/items"
 	"WB-L0/internal/pkg/repository/orders"
+	"WB-L0/internal/pkg/repository/payment"
+	"context"
 	"encoding/json"
 	"github.com/nats-io/stan.go"
 	"log"
@@ -10,10 +14,10 @@ import (
 
 type ClientNatsStreaming struct {
 	PostgresOrderRepo orders.OrderRepo
-	InMemoryOrderRepo orders.OrderRepo
-	DeliveryRepo      orders.OrderRepo
-	ItemsRepo         orders.OrderRepo
-	PaymentRepo       orders.OrderRepo
+	InMemoryOrderRepo orders.OrderInMemoryRepo
+	DeliveryRepo      delivery.DeliveryRepo
+	ItemsRepo         items.ItemRepo
+	PaymentRepo       payment.PaymentRepo
 }
 
 func (c ClientNatsStreaming) ReceivingOrder() {
@@ -25,7 +29,7 @@ func (c ClientNatsStreaming) ReceivingOrder() {
 	// Создание соединения с сервером NATS Streaming
 	sc, err := stan.Connect(clusterID, clientID, stan.NatsURL(natsURL))
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	// Отложенное закрытие соединения при завершении работы
@@ -33,22 +37,56 @@ func (c ClientNatsStreaming) ReceivingOrder() {
 
 	// Подписка на канал
 	channel := "my-channel"
-	var order orders.OrderAllData
+	var orderAllData orders.OrderAllData
+	var order orders.Order
+	ctx := context.Background()
 	_, err = sc.Subscribe(channel, func(msg *stan.Msg) {
 		// Обработка полученного сообщения
+
 		log.Printf("Получено сообщение: %s\n", string(msg.Data))
-		err = json.Unmarshal(msg.Data, &order)
+		err = json.Unmarshal(msg.Data, &orderAllData)
 		if err != nil {
 			log.Println("json err: ", err)
+			return
 		}
-
-		err := c.PostgresRepo.AddOrder(order)
+		deliveryUUID, err := c.DeliveryRepo.AddDelivery(ctx, orderAllData.Delivery)
 		if err != nil {
-			log.Println("PostgresRepo error:", err)
+			log.Println("DeliveryRepo error:", err)
+			return
 		}
-		err = c.InMemoryRepo.AddOrder(order)
+		paymentUUID, err := c.PaymentRepo.AddPayment(ctx, orderAllData.Payment)
 		if err != nil {
-			log.Println("InMemoryRepo error:", err)
+			log.Println("PaymentRepo error:", err)
+			return
+		}
+		itemsUUID, err := c.ItemsRepo.AddItems(ctx, orderAllData.Items)
+		if err != nil {
+			log.Println("PaymentRepo error:", err)
+			return
+		}
+		order.OrderUID = orderAllData.OrderUID
+		order.TrackNumber = orderAllData.TrackNumber
+		order.Entry = orderAllData.Entry
+		order.Locale = orderAllData.Locale
+		order.InternalSignature = orderAllData.InternalSignature
+		order.CustomerID = orderAllData.CustomerID
+		order.DeliveryService = orderAllData.DeliveryService
+		order.Shardkey = orderAllData.Shardkey
+		order.SmID = orderAllData.SmID
+		order.DateCreated = orderAllData.DateCreated
+		order.OofShard = orderAllData.OofShard
+		order.Delivery = *deliveryUUID
+		order.Payment = *paymentUUID
+		order.Items = itemsUUID
+		err = c.PostgresOrderRepo.AddOrder(ctx, order)
+		if err != nil {
+			log.Println("PostgresOrderRepo error:", err)
+			return
+		}
+		err = c.InMemoryOrderRepo.AddOrder(ctx, orderAllData)
+		if err != nil {
+			log.Println("InMemoryOrderRepo error:", err)
+			return
 		}
 		// Подтверждение получения сообщения
 		msg.Ack()

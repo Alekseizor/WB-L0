@@ -16,7 +16,7 @@ func NewRepoDeliveryPostgres(db *sql.DB) (*RepoDeliveryPostgres, error) {
 	}, nil
 }
 
-func (op *RepoDeliveryPostgres) AddDelivery(item Delivery, ctx context.Context) (*uuid.UUID, error) {
+func (op *RepoDeliveryPostgres) AddDelivery(ctx context.Context, item Delivery) (*uuid.UUID, error) {
 	deliveryUUID, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (op *RepoDeliveryPostgres) AddDelivery(item Delivery, ctx context.Context) 
 	item.DeliveryUUID = deliveryUUID
 	_, err = op.DB.ExecContext(ctx, "INSERT INTO delivery VALUES ($1,$2,$3,$4,$5,$6,$7,$8);", item.DeliveryUUID, item.Name, item.Phone, item.Zip, item.City, item.Address, item.Region, item.Email)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &deliveryUUID, nil
 }

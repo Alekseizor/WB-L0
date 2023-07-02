@@ -1,6 +1,9 @@
 package payment
 
-import "github.com/google/uuid"
+import (
+	"context"
+	"github.com/google/uuid"
+)
 
 type Payment struct {
 	PaymentUUID  uuid.UUID `json:"payment_uuid"`
@@ -14,4 +17,8 @@ type Payment struct {
 	DeliveryCost int       `json:"delivery_cost"`
 	GoodsTotal   int       `json:"goods_total"`
 	CustomFee    int       `json:"custom_fee"`
+}
+
+type PaymentRepo interface {
+	AddPayment(ctx context.Context, item Payment) (*uuid.UUID, error)
 }
