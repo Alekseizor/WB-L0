@@ -52,7 +52,7 @@ func main() {
 	defer zapLogger.Sync()
 	logger := zapLogger.Sugar()
 
-	serviceSend := sendingjson.NewServiceSendHTML(logger)
+	serviceSend := sendingjson.NewServiceSendJSON(logger)
 	inMemoryOrderRepo, err := orders.NewRepoOrderInMemory()
 	if err != nil {
 		logger.Errorf("failed to create NewRepoOrderInMemory - %v", err)
@@ -90,7 +90,7 @@ func main() {
 	r := mux.NewRouter()
 	staticFiles := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	r.PathPrefix("/static/").Handler(staticFiles)
-	r.HandleFunc("/orders", orderHandler.GetOrderByID).Methods("GET")
+	//r.HandleFunc("/orders", orderHandler.GetOrderByID).Methods("GET")
 	r.HandleFunc("/api/orders/{ID}", orderHandler.GetOrderByID).Methods("GET")
 	addr := ":8080"
 	logger.Infow("starting server",

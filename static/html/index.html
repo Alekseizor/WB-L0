@@ -1,19 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ячейка для ввода строки</title>
-    <script>
-        function requestString() {
-            var input = document.getElementById("input-text");
-            var userInput = input.value;
-            // Перенаправление на адрес "localhost:8080/api/orders/"
-            window.location.href = "http://localhost:8080/api/orders/"+userInput;
+    <title>Таблица данных</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
         }
-    </script>
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
-<label for="input-text">Введите строку:</label>
-<input type="text" id="input-text">
-<button onclick="requestString()">Запросить</button>
+<form>
+    <input type="text" id="IDInput">
+    <button>Отправить запрос</button>
+</form>
+<table>
+    <tr>
+        <th>order_uid</th>
+        <th>track_number</th>
+        <th>entry</th>
+        <th>delivery</th>
+        <th>payment</th>
+        <th>items</th>
+        <th>locale</th>
+        <th>internal_signature</th>
+        <th>customer_id</th>
+        <th>delivery_service</th>
+        <th>shardkey</th>
+        <th>sm_id</th>
+        <th>date_created</th>
+        <th>oof_shard</th>
+    </tr>
+    <!-- Здесь могут быть строки таблицы с данными -->
+</table>
+<script src="../js/request.js"></script>
 </body>
 </html>
