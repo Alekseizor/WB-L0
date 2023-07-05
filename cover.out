@@ -1,0 +1,16 @@
+mode: set
+WB-L0/internal/pkg/handlers/orders.go:18.78,22.26 4 1
+WB-L0/internal/pkg/handlers/orders.go:22.26,26.3 3 1
+WB-L0/internal/pkg/handlers/orders.go:27.2,27.16 1 1
+WB-L0/internal/pkg/handlers/orders.go:27.16,31.3 3 0
+WB-L0/internal/pkg/handlers/orders.go:32.2,33.16 2 1
+WB-L0/internal/pkg/handlers/orders.go:33.16,35.3 1 0
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:13.73,17.2 1 1
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:19.101,21.16 2 1
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:21.16,23.3 1 0
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:24.2,26.16 3 1
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:26.16,28.3 1 1
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:29.2,29.27 1 1
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:32.115,36.16 4 0
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:36.16,38.3 1 0
+WB-L0/internal/pkg/repository/delivery/postgres_delivery.go:39.2,39.22 1 0

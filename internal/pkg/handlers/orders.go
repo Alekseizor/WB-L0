@@ -10,7 +10,7 @@ import (
 )
 
 type OrdersHandler struct {
-	OrderRepo orders.OrderInMemoryRepo //тут будем юзать ин мемори
+	OrderRepo orders.OrderInMemoryRepo
 	Logger    *zap.SugaredLogger
 	Send      sendingjson.ServiceSend
 }
