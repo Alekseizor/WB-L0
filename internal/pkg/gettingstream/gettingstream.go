@@ -8,11 +8,14 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/nats-io/stan.go"
-	"log"
+	"go.uber.org/zap"
 	"time"
 )
 
+var ctx = context.Background()
+
 type ClientNatsStreaming struct {
+	Logger            *zap.SugaredLogger
 	PostgresOrderRepo orders.OrderRepo
 	InMemoryOrderRepo orders.OrderInMemoryRepo
 	DeliveryRepo      delivery.DeliveryRepo
@@ -21,47 +24,41 @@ type ClientNatsStreaming struct {
 }
 
 func (c ClientNatsStreaming) ReceivingOrder() {
-	// Настройка параметров подключения
-	natsURL := "nats://localhost:4222" // URL сервера NATS
-	clusterID := "test-cluster"        // Идентификатор кластера NATS Streaming
-	clientID := "client-1"             // Идентификатор клиента
+	natsURL := "nats://localhost:4222"
+	clusterID := "test-cluster"
+	clientID := "client-1"
 
-	// Создание соединения с сервером NATS Streaming
 	sc, err := stan.Connect(clusterID, clientID, stan.NatsURL(natsURL))
 	if err != nil {
-		log.Println(err)
+		c.Logger.Infof("Failed to create a connection to the NATS Streaming server - %v", err)
+		return
 	}
 
-	// Отложенное закрытие соединения при завершении работы
 	defer sc.Close()
 
-	// Подписка на канал
 	channel := "my-channel"
 	var orderAllData orders.OrderAllData
 	var order orders.Order
-	ctx := context.Background()
 	_, err = sc.Subscribe(channel, func(msg *stan.Msg) {
-		// Обработка полученного сообщения
-
-		log.Printf("Получено сообщение: %s\n", string(msg.Data))
+		msg.Ack()
 		err = json.Unmarshal(msg.Data, &orderAllData)
 		if err != nil {
-			log.Println("json err: ", err)
+			c.Logger.Infof("failed to Unmarshal the received message - %v", err)
 			return
 		}
 		deliveryUUID, err := c.DeliveryRepo.AddDelivery(ctx, orderAllData.Delivery)
 		if err != nil {
-			log.Println("DeliveryRepo error:", err)
+			c.Logger.Infof("failed to record delivery - %v", err)
 			return
 		}
 		paymentUUID, err := c.PaymentRepo.AddPayment(ctx, orderAllData.Payment)
 		if err != nil {
-			log.Println("PaymentRepo error:", err)
+			c.Logger.Infof("failed to record payment - %v", err)
 			return
 		}
 		itemsUUID, err := c.ItemsRepo.AddItems(ctx, orderAllData.Items)
 		if err != nil {
-			log.Println("PaymentRepo error:", err)
+			c.Logger.Infof("failed to record items - %v", err)
 			return
 		}
 		order.OrderUID = orderAllData.OrderUID
@@ -80,24 +77,19 @@ func (c ClientNatsStreaming) ReceivingOrder() {
 		order.Items = itemsUUID
 		err = c.PostgresOrderRepo.AddOrder(ctx, order)
 		if err != nil {
-			log.Println("PostgresOrderRepo error:", err)
+			c.Logger.Infof("failed to record order in postgres - %v", err)
 			return
 		}
 		err = c.InMemoryOrderRepo.AddOrder(ctx, orderAllData)
 		if err != nil {
-			log.Println("InMemoryOrderRepo error:", err)
+			c.Logger.Infof("failed to record order in memory - %v", err)
 			return
 		}
-		// Подтверждение получения сообщения
-		msg.Ack()
 	}, stan.SetManualAckMode())
 	if err != nil {
-		log.Fatal(err)
+		c.Logger.Infof("subscribe error - %v", err)
 	}
 
-	log.Printf("Подписка на канал '%s'...", channel)
-
-	//Ожидание событий
 	for {
 		time.Sleep(1 * time.Second)
 	}

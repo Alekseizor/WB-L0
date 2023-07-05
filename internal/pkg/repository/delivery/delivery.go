@@ -18,4 +18,5 @@ type Delivery struct {
 
 type DeliveryRepo interface {
 	AddDelivery(ctx context.Context, item Delivery) (*uuid.UUID, error)
+	GetDeliveryByUUID(ctx context.Context, uuidDelivery uuid.UUID) (*Delivery, error)
 }

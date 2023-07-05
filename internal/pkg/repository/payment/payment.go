@@ -21,4 +21,5 @@ type Payment struct {
 
 type PaymentRepo interface {
 	AddPayment(ctx context.Context, item Payment) (*uuid.UUID, error)
+	GetPaymentByUUID(ctx context.Context, uuidPayment uuid.UUID) (*Payment, error)
 }

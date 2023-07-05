@@ -28,3 +28,13 @@ func (op *RepoPaymentPostgres) AddPayment(ctx context.Context, item Payment) (*u
 	}
 	return &paymentUUID, nil
 }
+
+func (op *RepoPaymentPostgres) GetPaymentByUUID(ctx context.Context, uuidPayment uuid.UUID) (*Payment, error) {
+	row := op.DB.QueryRowContext(ctx, "SELECT * FROM payment WHERE payment_uuid=$1", uuidPayment)
+	payment := new(Payment)
+	err := row.Scan(&payment.PaymentUUID, &payment.Transaction, &payment.RequestID, &payment.Currency, &payment.Provider, &payment.Amount, &payment.PaymentDt, &payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee)
+	if err != nil {
+		return nil, err
+	}
+	return payment, nil
+}

@@ -28,3 +28,13 @@ func (op *RepoDeliveryPostgres) AddDelivery(ctx context.Context, item Delivery) 
 	}
 	return &deliveryUUID, nil
 }
+
+func (op *RepoDeliveryPostgres) GetDeliveryByUUID(ctx context.Context, uuidDelivery uuid.UUID) (*Delivery, error) {
+	row := op.DB.QueryRowContext(ctx, "SELECT * FROM delivery WHERE delivery_uuid=$1", uuidDelivery)
+	delivery := new(Delivery)
+	err := row.Scan(&delivery.DeliveryUUID, &delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address, &delivery.Region, &delivery.Email)
+	if err != nil {
+		return nil, err
+	}
+	return delivery, nil
+}

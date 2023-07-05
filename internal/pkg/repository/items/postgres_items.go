@@ -32,3 +32,13 @@ func (op *RepoItemsPostgres) AddItems(ctx context.Context, items []Item) ([]uuid
 	}
 	return uuidItems, nil
 }
+
+func (op *RepoItemsPostgres) GetItemsByUUID(ctx context.Context, uuidItem uuid.UUID) (*Item, error) {
+	row := op.DB.QueryRowContext(ctx, "SELECT * FROM items WHERE item_uuid=$1", uuidItem)
+	item := new(Item)
+	err := row.Scan(&item.ItemUUID, &item.ChrtID, &item.TrackNumber, &item.Price, &item.RID, &item.Name, &item.Sale, &item.Size, &item.TotalPrice, &item.NmID, &item.Brand, &item.Status)
+	if err != nil {
+		return nil, err
+	}
+	return item, nil
+}

@@ -29,7 +29,7 @@ func (h *OrdersHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `failed to receive order by ID`, http.StatusInternalServerError)
 		return
 	}
-	err = h.Send.Sending(w, r, *order)
+	err = h.Send.Sending(w, r, order)
 	if err != nil {
 		return
 	}

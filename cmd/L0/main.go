@@ -7,6 +7,7 @@ import (
 	"WB-L0/internal/pkg/repository/items"
 	"WB-L0/internal/pkg/repository/orders"
 	"WB-L0/internal/pkg/repository/payment"
+	"WB-L0/internal/pkg/repository/recovery"
 	"WB-L0/internal/pkg/sendingjson"
 	"database/sql"
 	"fmt"
@@ -24,7 +25,8 @@ const driver = "postgres"
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("ИЗМЕНИ ЛОГИ")
+		log.Println("failed to get environment variables")
+		return
 	}
 
 	dbHost := os.Getenv("DB_HOST")
@@ -57,11 +59,6 @@ func main() {
 	if err != nil {
 		logger.Errorf("failed to create NewRepoOrderInMemory - %v", err)
 	}
-	orderHandler := &handlers.OrdersHandler{
-		OrderRepo: inMemoryOrderRepo,
-		Logger:    logger,
-		Send:      serviceSend,
-	}
 
 	deliveryRepo, err := delivery.NewRepoDeliveryPostgres(db)
 	if err != nil {
@@ -80,17 +77,30 @@ func main() {
 		logger.Errorf("failed to create NewRepoOrderPostgres - %v", err)
 	}
 	clientNats := &gettingstream.ClientNatsStreaming{
+		Logger:            logger,
 		PostgresOrderRepo: orderRepo,
 		InMemoryOrderRepo: inMemoryOrderRepo,
 		DeliveryRepo:      deliveryRepo,
 		ItemsRepo:         itemsRepo,
 		PaymentRepo:       paymentRepo,
 	}
+	restorer, err := recovery.NewRestorer(orderRepo, inMemoryOrderRepo, deliveryRepo, itemsRepo, paymentRepo)
+	if err != nil {
+		logger.Errorf("failed to create NewRestorer - %v", err)
+	}
+	err = restorer.Recovery()
+	if err != nil {
+		logger.Errorf("recovery failed - %v", err)
+	}
 	go clientNats.ReceivingOrder()
+	orderHandler := &handlers.OrdersHandler{
+		OrderRepo: inMemoryOrderRepo,
+		Logger:    logger,
+		Send:      serviceSend,
+	}
 	r := mux.NewRouter()
 	staticFiles := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	r.PathPrefix("/static/").Handler(staticFiles)
-	//r.HandleFunc("/orders", orderHandler.GetOrderByID).Methods("GET")
 	r.HandleFunc("/api/orders/{ID}", orderHandler.GetOrderByID).Methods("GET")
 	addr := ":8080"
 	logger.Infow("starting server",

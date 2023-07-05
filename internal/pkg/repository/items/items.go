@@ -22,4 +22,5 @@ type Item struct {
 
 type ItemRepo interface {
 	AddItems(ctx context.Context, item []Item) ([]uuid.UUID, error)
+	GetItemsByUUID(ctx context.Context, uuidItem uuid.UUID) (*Item, error)
 }
