@@ -32,7 +32,7 @@ func (op *RepoOrderPostgres) GetAll(ctx context.Context) ([]Order, error) {
 	var orders []Order
 	var order Order
 	for rows.Next() {
-		err := rows.Scan(&order.OrderUID, &order.TrackNumber, &order.Entry, &order.Delivery, &order.Payment, pq.Array(&order.Items), &order.Locale, &order.InternalSignature, &order.CustomerID, &order.DeliveryService, &order.Shardkey, &order.SmID, &order.DateCreated, &order.OofShard)
+		err = rows.Scan(&order.OrderUID, &order.TrackNumber, &order.Entry, &order.Delivery, &order.Payment, pq.Array(&order.Items), &order.Locale, &order.InternalSignature, &order.CustomerID, &order.DeliveryService, &order.Shardkey, &order.SmID, &order.DateCreated, &order.OofShard)
 		if err != nil {
 			return nil, err
 		}

@@ -1,4 +1,4 @@
-package delivery
+package payment
 
 import (
 	"context"
@@ -15,37 +15,37 @@ var (
 	errTest  = fmt.Errorf("test Error")
 )
 
-func TestNewRepoDeliveryPostgres(t *testing.T) {
+func TestNewRepoPaymentPostgres(t *testing.T) {
 	db, _, err := sqlmock.New()
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer db.Close()
-	_, err = NewRepoDeliveryPostgres(db)
+	_, err = NewRepoPaymentPostgres(db)
 	if err != nil {
 		t.Errorf("[0] the error is different from the expected one %s", "nil")
 		return
 	}
 }
-func TestAddDelivery(t *testing.T) {
+func TestAddPayment(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer db.Close()
-	deliveryRepo, err := NewRepoDeliveryPostgres(db)
+	paymentRepo, err := NewRepoPaymentPostgres(db)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	testCases := []error{nil, errTest}
 	result := sqlmock.NewResult(1, 1) // вставляем одну запись, затронуто одна строка
-	mock.ExpectExec("INSERT INTO delivery VALUES").WillReturnResult(result)
-	mock.ExpectExec("INSERT INTO delivery VALUES").WillReturnError(errTest)
+	mock.ExpectExec("INSERT INTO payment VALUES").WillReturnResult(result)
+	mock.ExpectExec("INSERT INTO payment VALUES").WillReturnError(errTest)
 	for caseNum, item := range testCases {
-		_, err := deliveryRepo.AddDelivery(ctx, Delivery{})
+		_, err := paymentRepo.AddPayment(ctx, Payment{})
 		if err != item {
 			t.Errorf("[%d] the error %d  is different from the expected one %d", caseNum, err, item)
 		}
@@ -55,25 +55,25 @@ func TestAddDelivery(t *testing.T) {
 	}
 }
 
-func TestGetDeliveryByUUID(t *testing.T) {
+func TestGetPaymentByUUID(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer db.Close()
-	deliveryRepo, err := NewRepoDeliveryPostgres(db)
+	paymentRepo, err := NewRepoPaymentPostgres(db)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	testCases := []error{nil, errTest}
 
-	result := []string{"delivery_uuid", "name", "phone", "zip", "city", "address", "region", "email"}
-	mock.ExpectQuery("SELECT (.+) FROM delivery").WillReturnRows(sqlmock.NewRows(result).AddRow(uuidTest, "name", "phone", "zip", "city", "address", "region", "email"))
-	mock.ExpectQuery("SELECT (.+) FROM delivery").WillReturnError(errTest)
+	result := []string{"payment_uuid", "transaction", "request_id", "currency", "provider", "amount", "payment_dt", "bank", "delivery_cost", "goods_total", "custom_fee"}
+	mock.ExpectQuery("SELECT (.+) FROM payment").WillReturnRows(sqlmock.NewRows(result).AddRow(uuidTest, "transaction", "request_id", "currency", "provider", 22, 22, "bank", 22, 22, 22))
+	mock.ExpectQuery("SELECT (.+) FROM payment").WillReturnError(errTest)
 	for caseNum, item := range testCases {
-		_, err = deliveryRepo.GetDeliveryByUUID(ctx, uuidTest)
+		_, err = paymentRepo.GetPaymentByUUID(ctx, uuidTest)
 		if err != item {
 			t.Errorf("[%d] the error %d  is different from the expected one %d", caseNum, err, item)
 		}

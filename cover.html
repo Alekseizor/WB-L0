@@ -57,7 +57,15 @@
 				
 				<option value="file0">WB-L0/internal/pkg/handlers/orders.go (71.4%)</option>
 				
-				<option value="file1">WB-L0/internal/pkg/repository/delivery/postgres_delivery.go (53.3%)</option>
+				<option value="file1">WB-L0/internal/pkg/repository/delivery/postgres_delivery.go (93.3%)</option>
+				
+				<option value="file2">WB-L0/internal/pkg/repository/items/postgres_items.go (94.4%)</option>
+				
+				<option value="file3">WB-L0/internal/pkg/repository/orders/in_memory_orders.go (100.0%)</option>
+				
+				<option value="file4">WB-L0/internal/pkg/repository/orders/postgres_orders.go (94.4%)</option>
+				
+				<option value="file5">WB-L0/internal/pkg/repository/payment/postgres_payment.go (93.3%)</option>
 				
 				</select>
 			</div>
@@ -140,14 +148,187 @@ func (op *RepoDeliveryPostgres) AddDelivery(ctx context.Context, item Delivery) 
         <span class="cov8" title="1">return &amp;deliveryUUID, nil</span>
 }
 
-func (op *RepoDeliveryPostgres) GetDeliveryByUUID(ctx context.Context, uuidDelivery uuid.UUID) (*Delivery, error) <span class="cov0" title="0">{
+func (op *RepoDeliveryPostgres) GetDeliveryByUUID(ctx context.Context, uuidDelivery uuid.UUID) (*Delivery, error) <span class="cov8" title="1">{
         row := op.DB.QueryRowContext(ctx, "SELECT * FROM delivery WHERE delivery_uuid=$1", uuidDelivery)
         delivery := new(Delivery)
         err := row.Scan(&amp;delivery.DeliveryUUID, &amp;delivery.Name, &amp;delivery.Phone, &amp;delivery.Zip, &amp;delivery.City, &amp;delivery.Address, &amp;delivery.Region, &amp;delivery.Email)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return delivery, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package items
+
+import (
+        "context"
+        "database/sql"
+        "github.com/google/uuid"
+)
+
+type RepoItemsPostgres struct {
+        DB *sql.DB
+}
+
+func NewRepoItemsPostgres(db *sql.DB) (*RepoItemsPostgres, error) <span class="cov8" title="1">{
+        return &amp;RepoItemsPostgres{
+                DB: db,
+        }, nil
+}</span>
+
+func (op *RepoItemsPostgres) AddItems(ctx context.Context, items []Item) ([]uuid.UUID, error) <span class="cov8" title="1">{
+        uuidItems := make([]uuid.UUID, len(items))
+        for index, item := range items </span><span class="cov8" title="1">{
+                itemUUID, err := uuid.NewUUID()
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">item.ItemUUID = itemUUID
+                _, err = op.DB.ExecContext(ctx, "INSERT INTO items VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);", item.ItemUUID, item.ChrtID, item.TrackNumber, item.Price, item.RID, item.Name, item.Sale, item.Size, item.TotalPrice, item.NmID, item.Brand, item.Status)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">uuidItems[index] = itemUUID</span>
+        }
+        <span class="cov8" title="1">return uuidItems, nil</span>
+}
+
+func (op *RepoItemsPostgres) GetItemsByUUID(ctx context.Context, uuidItem uuid.UUID) (*Item, error) <span class="cov8" title="1">{
+        row := op.DB.QueryRowContext(ctx, "SELECT * FROM items WHERE item_uuid=$1", uuidItem)
+        item := new(Item)
+        err := row.Scan(&amp;item.ItemUUID, &amp;item.ChrtID, &amp;item.TrackNumber, &amp;item.Price, &amp;item.RID, &amp;item.Name, &amp;item.Sale, &amp;item.Size, &amp;item.TotalPrice, &amp;item.NmID, &amp;item.Brand, &amp;item.Status)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return item, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package orders
+
+import (
+        "context"
+        "database/sql"
+        "sync"
+)
+
+type RepoOrderInMemory struct {
+        orders map[string]*OrderAllData
+        mu     *sync.RWMutex
+}
+
+func NewRepoOrderInMemory() (*RepoOrderInMemory, error) <span class="cov8" title="1">{
+        return &amp;RepoOrderInMemory{
+                orders: make(map[string]*OrderAllData, 0),
+                mu:     &amp;sync.RWMutex{},
+        }, nil
+}</span>
+
+func (om *RepoOrderInMemory) AddOrder(ctx context.Context, item OrderAllData) error <span class="cov8" title="1">{
+        om.mu.Lock()
+        om.orders[item.OrderUID] = &amp;item
+        om.mu.Unlock()
+        return nil
+}</span>
+
+func (om *RepoOrderInMemory) GetOrderByID(ctx context.Context, orderUID string) (*OrderAllData, error) <span class="cov8" title="1">{
+        om.mu.RLock()
+        link, existence := om.orders[orderUID]
+        om.mu.RUnlock()
+        if existence </span><span class="cov8" title="1">{
+                return link, nil
+        }</span>
+        <span class="cov8" title="1">return nil, sql.ErrNoRows</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package orders
+
+import (
+        "context"
+        "database/sql"
+        "github.com/lib/pq"
+)
+
+type RepoOrderPostgres struct {
+        DB *sql.DB
+}
+
+func NewRepoOrderPostgres(db *sql.DB) (*RepoOrderPostgres, error) <span class="cov8" title="1">{
+        return &amp;RepoOrderPostgres{
+                DB: db,
+        }, nil
+}</span>
+
+func (op *RepoOrderPostgres) AddOrder(ctx context.Context, order Order) error <span class="cov8" title="1">{
+        _, err := op.DB.ExecContext(ctx, "INSERT INTO orders VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14);", order.OrderUID, order.TrackNumber, order.Entry, order.Delivery, order.Payment, pq.Array(order.Items), order.Locale, order.InternalSignature, order.CustomerID, order.DeliveryService, order.Shardkey, order.SmID, order.DateCreated, order.OofShard)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (op *RepoOrderPostgres) GetAll(ctx context.Context) ([]Order, error) <span class="cov8" title="1">{
+        rows, err := op.DB.QueryContext(ctx, "SELECT * FROM orders")
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">var orders []Order
+        var order Order
+        for rows.Next() </span><span class="cov8" title="1">{
+                err = rows.Scan(&amp;order.OrderUID, &amp;order.TrackNumber, &amp;order.Entry, &amp;order.Delivery, &amp;order.Payment, pq.Array(&amp;order.Items), &amp;order.Locale, &amp;order.InternalSignature, &amp;order.CustomerID, &amp;order.DeliveryService, &amp;order.Shardkey, &amp;order.SmID, &amp;order.DateCreated, &amp;order.OofShard)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">orders = append(orders, order)</span>
+        }
+        <span class="cov8" title="1">if err = rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return orders, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package payment
+
+import (
+        "context"
+        "database/sql"
+        "github.com/google/uuid"
+)
+
+type RepoPaymentPostgres struct {
+        DB *sql.DB
+}
+
+func NewRepoPaymentPostgres(db *sql.DB) (*RepoPaymentPostgres, error) <span class="cov8" title="1">{
+        return &amp;RepoPaymentPostgres{
+                DB: db,
+        }, nil
+}</span>
+
+func (op *RepoPaymentPostgres) AddPayment(ctx context.Context, item Payment) (*uuid.UUID, error) <span class="cov8" title="1">{
+        paymentUUID, err := uuid.NewUUID()
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
-        <span class="cov0" title="0">return delivery, nil</span>
+        <span class="cov8" title="1">item.PaymentUUID = paymentUUID
+        _, err = op.DB.ExecContext(ctx, "INSERT INTO payment VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11);", item.PaymentUUID, item.Transaction, item.RequestID, item.Currency, item.Provider, item.Amount, item.PaymentDt, item.Bank, item.DeliveryCost, item.GoodsTotal, item.CustomFee)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return &amp;paymentUUID, nil</span>
+}
+
+func (op *RepoPaymentPostgres) GetPaymentByUUID(ctx context.Context, uuidPayment uuid.UUID) (*Payment, error) <span class="cov8" title="1">{
+        row := op.DB.QueryRowContext(ctx, "SELECT * FROM payment WHERE payment_uuid=$1", uuidPayment)
+        payment := new(Payment)
+        err := row.Scan(&amp;payment.PaymentUUID, &amp;payment.Transaction, &amp;payment.RequestID, &amp;payment.Currency, &amp;payment.Provider, &amp;payment.Amount, &amp;payment.PaymentDt, &amp;payment.Bank, &amp;payment.DeliveryCost, &amp;payment.GoodsTotal, &amp;payment.CustomFee)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return payment, nil</span>
 }
 </pre>
 		

@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 const (
@@ -19,8 +18,7 @@ const (
 )
 
 var (
-	client = &http.Client{Timeout: time.Second}
-	ctx    = context.Background()
+	ctx = context.Background()
 )
 
 type SearchRequest struct {

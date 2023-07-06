@@ -40,7 +40,11 @@ func (c ClientNatsStreaming) ReceivingOrder() {
 	var orderAllData orders.OrderAllData
 	var order orders.Order
 	_, err = sc.Subscribe(channel, func(msg *stan.Msg) {
-		msg.Ack()
+		err = msg.Ack()
+		if err != nil {
+			c.Logger.Infof("could not confirm receipt of the message - %v", err)
+			return
+		}
 		err = json.Unmarshal(msg.Data, &orderAllData)
 		if err != nil {
 			c.Logger.Infof("failed to Unmarshal the received message - %v", err)
