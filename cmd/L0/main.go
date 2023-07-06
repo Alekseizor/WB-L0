@@ -1,11 +1,22 @@
 package main
 
 import (
+	"WB-L0/internal/pkg/gettingstream"
+	"WB-L0/internal/pkg/handlers"
+	"WB-L0/internal/pkg/repository/delivery"
+	"WB-L0/internal/pkg/repository/items"
+	"WB-L0/internal/pkg/repository/orders"
+	"WB-L0/internal/pkg/repository/payment"
+	"WB-L0/internal/pkg/repository/recovery"
+	"WB-L0/internal/pkg/sendingjson"
 	"database/sql"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -14,7 +25,8 @@ const driver = "postgres"
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("ИЗМЕНИ ЛОГИ")
+		log.Println("failed to get environment variables")
+		return
 	}
 
 	dbHost := os.Getenv("DB_HOST")
@@ -34,5 +46,69 @@ func main() {
 		log.Println(fmt.Errorf("failed to connect to the db - %s", err.Error()))
 		return
 	}
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		log.Println(fmt.Errorf("couldn't create a new logger - %s", err.Error()))
+		return
+	}
+	defer zapLogger.Sync()
+	logger := zapLogger.Sugar()
 
+	serviceSend := sendingjson.NewServiceSendJSON(logger)
+	inMemoryOrderRepo, err := orders.NewRepoOrderInMemory()
+	if err != nil {
+		logger.Errorf("failed to create NewRepoOrderInMemory - %v", err)
+	}
+
+	deliveryRepo, err := delivery.NewRepoDeliveryPostgres(db)
+	if err != nil {
+		logger.Errorf("failed to create NewRepoDeliveryPostgres - %v", err)
+	}
+	itemsRepo, err := items.NewRepoItemsPostgres(db)
+	if err != nil {
+		logger.Errorf("failed to create NewRepoItemsPostgres - %v", err)
+	}
+	orderRepo, err := orders.NewRepoOrderPostgres(db)
+	if err != nil {
+		logger.Errorf("failed to create NewRepoOrderPostgres - %v", err)
+	}
+	paymentRepo, err := payment.NewRepoPaymentPostgres(db)
+	if err != nil {
+		logger.Errorf("failed to create NewRepoOrderPostgres - %v", err)
+	}
+	clientNats := &gettingstream.ClientNatsStreaming{
+		Logger:            logger,
+		PostgresOrderRepo: orderRepo,
+		InMemoryOrderRepo: inMemoryOrderRepo,
+		DeliveryRepo:      deliveryRepo,
+		ItemsRepo:         itemsRepo,
+		PaymentRepo:       paymentRepo,
+	}
+	restorer, err := recovery.NewRestorer(orderRepo, inMemoryOrderRepo, deliveryRepo, itemsRepo, paymentRepo)
+	if err != nil {
+		logger.Errorf("failed to create NewRestorer - %v", err)
+	}
+	err = restorer.Recovery()
+	if err != nil {
+		logger.Errorf("recovery failed - %v", err)
+	}
+	go clientNats.ReceivingOrder()
+	orderHandler := &handlers.OrdersHandler{
+		OrderRepo: inMemoryOrderRepo,
+		Logger:    logger,
+		Send:      serviceSend,
+	}
+	r := mux.NewRouter()
+	staticFiles := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	r.PathPrefix("/static/").Handler(staticFiles)
+	r.HandleFunc("/api/orders/{ID}", orderHandler.GetOrderByID).Methods("GET")
+	addr := ":8080"
+	logger.Infow("starting server",
+		"type", "START",
+		"addr", addr,
+	)
+	err = http.ListenAndServe(addr, r)
+	if err != nil {
+		logger.Errorf("couldn't start listening - %v", err)
+	}
 }

@@ -2,7 +2,6 @@ create table orders
 (
     order_uid varchar(255),
     track_number varchar(255),
-    pass varchar(255),
     entry varchar(255),
     delivery uuid,
     payment uuid,
